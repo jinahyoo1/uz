@@ -14,7 +14,7 @@ boxplot(finedust$`3_fine dust`, finedust$`7_fine dust`, main="업종별2020년1�
 #산점도
 plot(x=finedust$`3_fine dust`, y=finedust$`3_ultrafine dust`, xlab="미세먼지", ylab="초미세먼지", main="미세먼지와초미세먼지의변화")
 
-#산점도 편집.
+#산점도 편집!
 plot(x=finedust$`3_fine dust`, y=finedust$`3_ultrafine dust`, xlab="미세먼지", ylab="초미세먼지", main="미세먼지와초미세먼지의변화", pch=24, col="red", bg="yellow", cex=1.5)
 
 #산점도 타입별 편집
