@@ -45,7 +45,7 @@ print(avg_congestion_by_line)
 #3. 지하철 호선별 출근시간(07:00~09:00)대의 평균혼잡도 
 # 출근시간대(07:00~09:00)의 열을 선택
 commute_data <- congestion1 %>%
-  select(line, station, s0700, s0730, s0800, s0830,s0900)
+  select(line, station, s0700, s0730, s0800, s0830)
 
 # 각 호선별로 출근시간대의 평균 혼잡도
 commute_avg <- commute_data %>%
@@ -55,7 +55,6 @@ commute_avg <- commute_data %>%
     avg_s0730 = mean(s0730),
     avg_s0800 = mean(s0800),
     avg_s0830 = mean(s0830),
-    avg_s0900 = mean(s0900)
   )
 
 print("출근시간대(07:00~09:00)의 평균 혼잡도")
@@ -69,58 +68,58 @@ summary_stats <- congestion1 %>%
     mean_s0730 = mean(s0730),
     mean_s0800 = mean(s0800),
     mean_s0830 = mean(s0830),
-    mean_s0900 = mean(s0900),
     median_s0700 = median(s0700),
     median_s0730 = median(s0730),
     median_s0800 = median(s0800),
     median_s0830 = median(s0830),
-    median_s0900 = median(s0900),
     max_s0700 = max(s0700),
     max_s0730 = max(s0730),
     max_s0800 = max(s0800),
     max_s0830 = max(s0830),
-    max_s0900 = max(s0900),
     min_s0700 = min(s0700),
     min_s0730 = min(s0730),
     min_s0800 = min(s0800),
     min_s0830 = min(s0830),
-    min_s0900 = min(s0900),
     sd_s0700 = sd(s0700),
     sd_s0730 = sd(s0730),
     sd_s0800 = sd(s0800),
-    sd_s0830 = sd(s0830),
-    sd_s0900 = sd(s0900)
+    sd_s0830 = sd(s0830)
   )
 
 # 결과를 출력합니다.
 print(summary_stats)
+str(summary_stats)
 
-#3-2평균혼잡도가 가장 높은 시간대를 막대그래프로 그리기 
+#3-2 호선별로 출근시간 평균 혼잡도가 가장 높은 시간대를 막대그래프로 그리기
+# commute_age 데이터프레임을 예시로 가정하고 새로운 열 추가
+commute_avg$MaxCommute <- apply(commute_avg, 1, max)
 
-# 각 호선별로 평균 혼잡도가 가장 높은 시간대 찾기 
-max_congestion <- congestion1 %>%
-  group_by(line) %>%
-  summarise(
-    max_time = ifelse(max(s0700) == max(max(s0700), max(s0730), max(s0800), max(s0830)), "s0700",ifelse(max(s0730) == max(max(s0700), max(s0730), max(s0800), max(s0830)), "s0730",ifelse(max(s0800) == max(max(s0700), max(s0730), max(s0800), max(s0830)), "s0800", "s0830"))) )
-print(max_congestion)
+# 결과 확인
+print(commute_avg)
 
-# 결과를 막대 그래프로 그리기
-# ggplot2 패키지를 로드합니다.
+#막대그래프 만들기기
+str(commute_avg)
 library(ggplot2)
 
-# max_congestion 데이터 프레임을 이용하여 막대 그래프를 그립니다.
-ggplot(max_congestion, aes(x = as.factor(line), fill = max_time)) +
-  geom_bar(stat = "count", position = "dodge") +
-  labs(title = "각 호선별로 평균 혼잡도가 가장 높은 시간대", x = "호선", y = "혼잡도") +
-  scale_fill_discrete(name = "최대 시간대")
-# ggplot2 패키지를 로드합니다.
-library(ggplot2)
+# MaxCommute의 최대값을 가진 열의 이름을 새로운 열로 추가
+commute_avg <- commute_avg %>%
+  mutate(MaxCommute_Column = colnames(commute_avg)[max.col(select(commute_avg, starts_with("avg_s")))])
+
+#막대그래프 만들기  
+ggplot(commute_avg, aes(x = as.factor(line), y = MaxCommute)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "각 호선별로 평균 혼잡도가 가장 높은 시간대(출근시간)", x = "호선", y = "평균 혼잡도") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))+
+  geom_text(aes(label = MaxCommute_Column), vjust = -0.5, color = "black", size = 3)
+str(commute_avg)
+
+
 
 #3-3평균혼잡도 상위 4개 호선도의 역별 기여도
 mean_day_congestion <- congestion1 %>%
   group_by(line) %>%
   summarise(
-    mean_congestion = mean(s0700 + s0730 + s0800 + s0830 +s0900)
+    mean_congestion = mean(s0700 + s0730 + s0800 + s0830)
   ) %>%
   arrange(desc(mean_congestion))
 
@@ -131,10 +130,10 @@ print(top_4_lines)
 #선택된 4개 호선에서 역별로 혼잡도의 기여도를 계산합니다.
 contribution_by_station <- congestion1 %>%
   filter(line %in% top_4_lines$line) %>%
-  select(station, line, s0700, s0730, s0800, s0830,s0900) %>%
+  select(station, line, s0700, s0730, s0800, s0830) %>%
   group_by(station,line) %>%
   summarise(
-    total_congestion = sum(s0700 + s0730 + s0800 + s0830 +s0900),
+    total_congestion = sum(s0700 + s0730 + s0800 + s0830 ),
     contribution_percentage = total_congestion / sum(total_congestion) * 100
   )
 
@@ -143,17 +142,16 @@ print(contribution_by_station)
 
 #4.출발시간 8시의 지하철 혼잡도 범주화/범주별 빈도분석 
 congestion1 %>% 
-  mutate(s80_grade=ifelse(s0800<=80, "good", ifelse(s0800<=130, "normal", ifelse(s0800<=150, "caution", 
-                                                                                 "bad"))))%>% 
+  mutate(s80_grade=ifelse(s0800<=80, "good", ifelse(s0800<=130, "normal", ifelse(s0800<=150, "caution", "bad"))))%>% 
   group_by(s80_grade) %>% 
   summarise(n=n())%>% 
   mutate(total=sum(n), pct=round(n/total*100,1))%>% 
   select(s80_grade,n,pct)%>% 
   arrange(desc(n))
+
 #4-1. 호선별로 08시 지하철 혼잡도 범주화
 congestion1 %>% 
-  mutate(s80_grade=ifelse(s0800<=80, "good", ifelse(s0800<=130, "normal", ifelse(s0800<=150, "caution", 
-                                                                                 "bad"))))%>% 
+  mutate(s80_grade=ifelse(s0800<=80, "good", ifelse(s0800<=130, "normal", ifelse(s0800<=150, "caution", "bad"))))%>% 
   group_by(line, s80_grade) %>% 
   summarise(n=n())%>% 
   mutate(total=sum(n), pct=round(n/total*100,1))%>% 
@@ -162,10 +160,11 @@ congestion1 %>%
   arrange(desc(pct))%>% 
   head(5)
 
+
 #5.지하철 호선별 퇴근시간(18:00~20:00)대의 평균혼잡도 
 # 퇴근시간대(18:00~20:00)의 열을 선택
 left_data <- congestion1 %>%
-  select(line, station, s1800, s1830, s1900, s1930,s2000)
+  select(line, station, s1800, s1830, s1900, s1930)
 
 # 각 호선별로 출근시간대의 평균 혼잡도
 left_avg <- left_data %>%
@@ -174,8 +173,7 @@ left_avg <- left_data %>%
     avg_s1800 = mean(s1800),
     avg_s1830 = mean(s1830),
     avg_s1900 = mean(s1900),
-    avg_s1930 = mean(s1930),
-    avg_s2000 = mean(s2000)
+    avg_s1930 = mean(s1930)
   )
 
 print("퇴근시간대(18:00~20:00)의 평균 혼잡도")
@@ -190,57 +188,48 @@ summary_stats_left <- congestion1 %>%
     mean_s1830 = mean(s1830),
     mean_s1900 = mean(s1900),
     mean_s1930 = mean(s1930),
-    mean_s2000 = mean(s2000),
     median_s1800 = median(s1800),
     median_s1830 = median(s1830),
     median_s1900 = median(s1900),
     median_s1930 = median(s1930),
-    median_s2000 = median(s2000),
     max_s1800 = max(s1800),
     max_s1830 = max(s1830),
     max_s1900 = max(s1900),
     max_s1930 = max(s1930),
-    max_s2000 = max(s2000),
     min_s1800 = min(s1800),
     min_s1830 = min(s1830),
     min_s1900 = min(s1900),
     min_s1930 = min(s1930),
-    min_s2000 = min(s2000),
     sd_s1800 = sd(s1800),
     sd_s1830 = sd(s1830),
     sd_s1900 = sd(s1900),
-    sd_s1930 = sd(s1930),
-    sd_s2000 = sd(s2000)
+    sd_s1930 = sd(s1930)
   )
 
 # 결과를 출력합니다.
 print(summary_stats_left)
 
 #5-2평균혼잡도가 가장 높은 시간대를 막대그래프로 그리기 
+# left_avg 데이터프레임에 Max 열 추가
+left_avg <- left_avg %>%
+  mutate(Max = pmax(avg_s1800, avg_s1830, avg_s1900, avg_s1930))
 
-# 각 호선별로 평균 혼잡도가 가장 높은 시간대 찾기 
-max_congestion_left <- congestion1 %>%
-  group_by(line) %>%
-  summarise(
-    max_time = ifelse(max(s1800) == max(max(s1830), max(s1900), max(s1930), max(s2000)), "s1800",ifelse(max(s1830) == max(max(s1800), max(s1830), max(s1900), max(s1930)), "s1830",ifelse(max(s1800) == max(max(s1800), max(s1830), max(s1900), max(s1930)), "s1900", "s1930"))) )
-print(max_congestion_left)
+#막대그래프 만들기기 #모두 18시에 혼잡함 
 
-# 결과를 막대 그래프로 그리기
-# ggplot2 패키지를 로드합니다.
 library(ggplot2)
+ggplot(left_avg, aes(x = as.factor(line), y =Max)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "각 호선별로 평균 혼잡도가 가장 높은 시간대(퇴근시간)", x = "호선", y = "평균 혼잡도") +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))+
+str(left_avg)
 
-# max_congestion 데이터 프레임을 이용하여 막대 그래프를 그립니다.
-ggplot(max_congestion_left, aes(x = as.factor(line), fill = max_time)) +
-  geom_bar(stat = "count", position = "dodge") +
-  labs(title = "각 호선별로 평균 혼잡도가 가장 높은 시간대", x = "호선", y = "혼잡도") +
-  scale_fill_discrete(name = "최대 시간대")
 
 
 #5-3평균혼잡도 상위 4개 호선도의 역별 기여도
 mean_day_congestion_left <- congestion1 %>%
   group_by(line) %>%
   summarise(
-    mean_congestion_left = mean(s1800 + s1830 + s1900 + s1930 +s2000)
+    mean_congestion_left = mean(s1800 + s1830 + s1900 + s1930)
   ) %>%
   arrange(desc(mean_congestion_left))
 
@@ -251,10 +240,10 @@ print(top_4_lines)
 #선택된 4개 호선에서 역별로 혼잡도의 기여도를 계산합니다.
 contribution_by_station_left <- congestion1 %>%
   filter(line %in% top_4_lines$line) %>%
-  select(station, line, s1800, s1830, s1900, s1930,s2000) %>%
+  select(station, line, s1800, s1830, s1900, s1930) %>%
   group_by(station,line) %>%
   summarise(
-    total_congestion = sum(s1800 + s1830 + s1900 + s1930 +s2000),
+    total_congestion = sum(s1800 + s1830 + s1900 + s1930),
     contribution_percentage = total_congestion / sum(total_congestion) * 100
   )
 
@@ -269,13 +258,15 @@ congestion1 %>%
   mutate(total=sum(n), pct=round(n/total*100,1))%>% 
   select(s18_grade,n,pct)%>% 
   arrange(desc(n))
+
+
 #6-1 호선별로 18시 지하철 혼잡도 범주화
 congestion1 %>% 
   mutate(s18_grade = ifelse(s1800 <= 80, "good", ifelse(s1800 <= 130, "normal", ifelse(s1800 <= 150, "caution", "bad")))) %>% 
   group_by(line, s18_grade) %>% 
   summarise(n = n()) %>% 
   mutate(total = sum(n), pct = round(n / total * 100, 1)) %>% 
-  filter(s18_grade == "caution") %>% 
+  filter(s18_grade == "bad") %>% 
   select(line, s18_grade, n, pct) %>% 
   arrange(desc(pct)) %>% 
   head(5)
