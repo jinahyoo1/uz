@@ -4,10 +4,11 @@ library(ggplot2)
 
 #데이터를 새객체 foodshop으로 불러오기
 #비어있는 셀은 결측치 처리/파라미터 문자형으로 변환
-foodshop <- read.csv("seoul_food_2023.csv", na="", stringsAsFactors = F)
+foodshop_s <- read.csv("seoul_food_2023.csv", na="", stringsAsFactors = F)
 
 #데이터 구조 확인
 str(foodshop)
+
 #분석변수 추출 및 변수이름 변경
 foodshop <- foodshop %>%
   rename(open_date=인허가일자, status=상세영업상태명, 
@@ -16,6 +17,8 @@ foodshop <- foodshop %>%
   select("name","type","status","open_date","close_date", "address")
 #추출된 데이터 구조 확인
 str(foodshop)
+
+
 #날짜데이터를 분석용 데이터로 변경
 #1.YYYYMMDD형식으로 변경
 foodshop$open_date <- gsub("-","",foodshop$open_date)
@@ -29,7 +32,6 @@ str(foodshop)
 #.파생변수 만들기
 #1.status변수 #############폭탄주의
 table(foodshop$status)
-
 #영업상태가 영업/폐업이 아닌 것을 제외
 foodshop <- foodshop %>% 
   filter(status == '영업' | status == '폐업') %>%
@@ -106,6 +108,7 @@ foodshop %>%
   summarise(n=n()) %>% #범주빈도계산
   mutate(total=sum(n),pct=round(n/total*100,1)) #범주별비율계산
 #6.주요 업종별 영업과 폐업 비율
+#영업비율 
 foodshop %>%
   filter(!is.na(open_date)&!is.na(type)&!is.na(district)) %>% #결측치제외
   filter(type%in%c("기타","경양식","분식","일식","중국식","호프/통닭"))%>%
@@ -114,6 +117,19 @@ foodshop %>%
   mutate(total=sum(n),pct=round(n/total*100,1))%>% #범주별비율계산
   filter(status=="영업") %>% #영업만 추출
   arrange(desc(n))
+#폐업비율 
+foodshop %>%
+  filter(!is.na(open_date)&!is.na(type)&!is.na(district)) %>% #결측치제외
+  filter(type%in%c("기타","경양식","분식","일식","중국식","호프/통닭"))%>%
+  group_by(type,status) %>%#교차차 분류
+  summarise(n=n()) %>% #범주빈도계산
+  mutate(total=sum(n),pct=round(n/total*100,1))%>% #범주별비율계산
+  filter(status=="폐업") %>% #폐업만 추출
+  arrange(desc(n))
+
+
+
+
 #7.개업이 많았던 연도
 foodshop %>%
   filter(!is.na(open_date)&!is.na(district))%>% #결측치제외
@@ -121,6 +137,8 @@ foodshop %>%
   summarise(n=n()) %>% #범주빈도계산
   arrange(desc(n)) %>%
   head(5)
+
+
 #8.폐업이 많았던 연도
 foodshop %>%
   filter(!is.na(close_date)&!is.na(district))%>% #결측치제외
@@ -128,6 +146,7 @@ foodshop %>%
   summarise(n=n()) %>% #범주빈도계산
   arrange(desc(n)) %>%
   head(5)
+
 #9.연도별 개업 음식점수 그래프
 #연도별 개업 음식점수
 open_trend <- foodshop %>%
@@ -139,7 +158,8 @@ str(open_trend)
 #연도별 개업 음식점수 막대그래프
 ggplot(data=open_trend,aes(x=open_year,y=open_n))+
   geom_col()+
-  xlab("연도") + ylab("개업수") + ggtitle("연도별 개업수")
+  xlab("연도") + ylab("개업수") + ggtitle("연도별 음식점 개업수")
+
 #10.연도별 폐업 음식점수 그래프
 #연도별 폐업 음식점수
 close_trend <- foodshop %>%
@@ -151,7 +171,8 @@ str(close_trend)
 #연도별 개업 음식점수 막대그래프
 ggplot(data=close_trend,aes(x=close_year,y=close_n))+
   geom_col()+
-  xlab("연도") + ylab("폐업수") + ggtitle("연도별 폐업수")
+  xlab("연도") + ylab("폐업수") + ggtitle("연도별 음식점 폐업수")
+
 #11.개업과 폐업 음식점 통합 그래프
 open_trend1<-rename(open_trend,year=open_year)#연도이름 변경
 close_trend1<-rename(close_trend,year=close_year)#연도이름 변경
@@ -162,9 +183,12 @@ ggplot()+
   geom_line(data=open_close_trend, aes(year,open_n))+#개업그래프
   geom_line(data=open_close_trend, aes(year,close_n,color="red"))+#폐업그래프
   xlab("연도") + ylab("개수")+ggtitle(" 연도별 개업과 폐업 추이 그래프")
+
 #12.폐업음식점수가 개업음식점수보다 많았던 기간 확인
 open_close_trend %>%
   filter(close_n>open_n)
+
+
 #13.영업중인 음식점수가 가장 많은 5개 구
 district_business<-foodshop %>%
   filter(!is.na(open_date)&!is.na(district)&status=="영업") %>% #결측치제거
@@ -174,12 +198,16 @@ district_business<-foodshop %>%
 district_business %>%
   arrange(desc(n)) %>%
   head(5)
+
 #14,25개 구의 음식점수 막대그래프
 ggplot(data = district_business, aes(x=reorder(district,n),y=n))+
   geom_col()+
   coord_flip()+#막대 90도회전
   xlab("영업구")+
   ylab("영업 음식점 수") +ggtitle(" 25개 구의 음식점 수")
+
+
+
 #15.주요 업종별로 영업하는 음식점이 많은 구
 foodshop %>%
   filter(!is.na(open_date)&!is.na(district)) %>% #결측치제거
